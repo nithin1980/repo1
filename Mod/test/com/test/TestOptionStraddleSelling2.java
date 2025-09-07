@@ -14,7 +14,7 @@ public class TestOptionStraddleSelling2 {
 	
 	static List<KiteBNFSellingCandle> bnfdataList = new ArrayList<KiteBNFSellingCandle>();
 	
-	static final double range1=75.0;
+	static final double range1=40.0;
 	
 	double pricePoint1 = 400;
 	double pricePoint2 = 400;
@@ -35,10 +35,10 @@ public class TestOptionStraddleSelling2 {
 		
 		for(int k=0;k<25;k++) {
 			
-			pricePoint1=100+(5*k);
+			pricePoint1=50+(5*k);
 			pricePoint2=100+(5*k);
-			pricePoint3=300+(5*k);
-			System.out.println("Price Point 1:"+pricePoint1+","+pricePoint2+","+pricePoint3);
+			pricePoint3=150+(5*k);
+			System.out.println("Price Points :"+pricePoint1+","+pricePoint2+","+pricePoint3);
 		
 		double previousClose=0;
 		double todayOpen=0;
@@ -48,6 +48,7 @@ public class TestOptionStraddleSelling2 {
 		KitePositionMetaData todayOpenMeta = new KitePositionMetaData(KitePositionMetaData.todayOpen);
 		KitePositionMetaData todayFirstCloseMeta = new KitePositionMetaData(KitePositionMetaData.todayFirstClose);
 
+		
 		
 		for(int i=1;i<bnfdataList.size();i++) {
 			
@@ -225,7 +226,7 @@ public class TestOptionStraddleSelling2 {
 			
 		}
 		
-		
+
 		System.out.println("Pre Close:"+prevCloseMeta.getPricePtcounter1().failurerate()+","
 				+prevCloseMeta.getPricePtcounter2().failurerate()+","
 				+prevCloseMeta.getPricePtcounter3().failurerate()+",");
@@ -571,7 +572,7 @@ public class TestOptionStraddleSelling2 {
 	
 	private void collectData() {
 
-		Iterator<Candle> candles =  ApplicationHelper.getKiteProcessedCandles("2023-07-13T09:15:00+0530","2023-07-14T15:29:00+0530").iterator();
+		Iterator<Candle> candles =  ApplicationHelper.getKiteProcessedCandles("2025-02-03T09:15:00+0530","2025-02-04T15:29:00+0530","C:/data/testdata.txt").iterator();
 		
 		
 		

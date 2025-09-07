@@ -6,7 +6,9 @@ public class KitePositionMetaDataCounter {
 	private double overall;
 	
 	public double failurerate() {
+		
 		System.out.println("fail:"+failure+","+overall+","+(overall-(failure*2)));
+		
 		return (failure/overall)*100;
 	}
 	

@@ -16,6 +16,7 @@ import java.io.PrintStream;
 import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.sql.Date;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -46,6 +47,7 @@ import com.mod.objects.KitePositionDataLayer2;
 import com.mod.objects.PositionalData;
 import com.mod.process.models.CacheService;
 import com.mod.process.models.ProcessModelAbstract;
+import com.test.KiteBNFSellingCandle;
 import com.test.TestKiteConnectMock;
 import com.test.TestKiteTickerMock;
 import com.zerodhatech.kiteconnect.KiteConnect;
@@ -83,7 +85,46 @@ public class ApplicationHelper {
 		// TODO Auto-generated constructor stub
 	}
 	
-	
+
+    // Method to find the nth ITM Put Option (PE) Strike Price
+    public static int findNthItmPe(int strikeSpacing, int spotPrice, int n) {
+        // For Put options, ITM occurs when the strike price > spot price
+        // Find the nearest strike price greater than the spot price
+        int firstItmPeStrike = ((spotPrice / strikeSpacing) + 1) * strikeSpacing;
+        // The nth ITM Put strike price is n strikes above the first ITM PE strike
+        int nthItmPeStrike = firstItmPeStrike + (n - 1) * strikeSpacing;
+        return nthItmPeStrike;
+    }
+
+    // Method to find the nth ITM Call Option (CE) Strike Price
+    public static int findNthItmCe(int strikeSpacing, int spotPrice, int n) {
+        // For Call options, ITM occurs when the strike price < spot price
+        // Find the nearest strike price less than or equal to the spot price
+        int firstItmCeStrike = (spotPrice / strikeSpacing) * strikeSpacing;
+        // The nth ITM Call strike price is n strikes below the first ITM CE strike
+        int nthItmCeStrike = firstItmCeStrike - (n - 1) * strikeSpacing;
+        return nthItmCeStrike;
+    }
+    
+    // Method to find the nth OTM Put Option (PE) Strike Price
+    public static int findNthOtmPe(int strikeSpacing, int spotPrice, int n) {
+        // For Put options, OTM occurs when the strike price < spot price
+        // Find the nearest strike price less than or equal to the spot price
+        int firstOtmPeStrike = (spotPrice / strikeSpacing) * strikeSpacing;
+        // The nth OTM Put strike price is n strikes below the first OTM PE strike
+        int nthOtmPeStrike = firstOtmPeStrike - (n - 1) * strikeSpacing;
+        return nthOtmPeStrike;
+    }
+
+    // Method to find the nth OTM Call Option (CE) Strike Price
+    public static int findNthOtmCe(int strikeSpacing, int spotPrice, int n) {
+        // For Call options, OTM occurs when the strike price > spot price
+        // Find the nearest strike price greater than the spot price
+        int firstOtmCeStrike = ((spotPrice / strikeSpacing) + 1) * strikeSpacing;
+        // The nth OTM Call strike price is n strikes above the first OTM CE strike
+        int nthOtmCeStrike = firstOtmCeStrike + (n - 1) * strikeSpacing;
+        return nthOtmCeStrike;
+    }
 	public static KiteConnect getKiteSDK() {
 		if(isTesting) {
 			return new TestKiteConnectMock("");
@@ -96,6 +137,58 @@ public class ApplicationHelper {
 		}
 		return LTPKiteAPIWebsocket.tickerProvider;
 	}
+	
+	
+	
+	public static List<KiteBNFSellingCandle> collectData(List<KiteBNFSellingCandle> bnfdataList, String startdate,String enddate,String fileLocation) {
+
+		//ApplicationHelper.getKiteProcessedCandles("2025-02-14T09:15:00+0530","2025-02-14T15:29:00+0530").iterator();
+		
+		Iterator<Candle> candles =  ApplicationHelper.getKiteProcessedCandles(startdate,enddate,fileLocation).iterator();
+		
+		
+		
+		KiteBNFSellingCandle bnfData = new KiteBNFSellingCandle();
+		
+		Candle fileCandle = null;
+		List<Candle> newCandleList =  new ArrayList<Candle>();
+		int dayOfYear = 0;
+		
+		while(candles.hasNext()) {
+			
+			fileCandle = candles.next();
+			
+			LocalDateTime inputDate = LocalDateTime.parse(fileCandle.getTime().split("\\+")[0]);
+			
+			if(dayOfYear==0) {
+				dayOfYear = inputDate.getDayOfYear();
+			}
+			
+			if(dayOfYear!=inputDate.getDayOfYear() || !candles.hasNext()) {
+				
+				bnfData.setCandles(newCandleList);
+				bnfdataList.add(bnfData);
+				bnfData = new KiteBNFSellingCandle();
+				newCandleList =  new ArrayList<Candle>();
+				dayOfYear=inputDate.getDayOfYear();
+			}
+			
+			if(bnfData.getTime()==null) {
+				bnfData.setTime(fileCandle.getTime().split("\\+")[0]);
+				
+			}
+			
+			Candle  newCandle = new Candle(fileCandle);
+			newCandleList.add(newCandle);
+			
+			
+			
+		}
+		
+		
+		return bnfdataList;
+		
+	}	
 	
 	
 	public static void botInitialSetup() {
@@ -466,7 +559,52 @@ public class ApplicationHelper {
 		String[] values =subscribe.toString().split("\\,");
     	return values;
     }
+
     
+    public static List<Candle> getKiteProcessedCandles(String fileLocation){
+		Scanner reader = null;
+	List<Candle> candles = new ArrayList<Candle>();
+	
+	//new File("C:/data/testdata.txt");
+		
+		try {
+			File file = new File(fileLocation);
+			
+			reader = new Scanner(file);
+			
+			StringBuilder data = new StringBuilder();
+			
+			while(reader.hasNextLine()) {
+				data = data.append(reader.nextLine());
+			}
+			
+			KiteCandleData candleData =  getObjectMapper().readValue(data.toString(), KiteCandleData.class);
+			
+			candles.addAll(candleData.getData().candleInformation());
+			
+			reader.close();
+		} catch (FileNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (JsonParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally{
+			
+				if(reader!=null){
+					reader.close();
+				}
+		}
+
+		return candles;
+    	
+    }    
     public static List<Candle> getKiteProcessedCandles(){
 		Scanner reader = null;
 	List<Candle> candles = new ArrayList<Candle>();
@@ -510,10 +648,11 @@ public class ApplicationHelper {
     	
     }
 
-    public static List<Candle> getKiteProcessedCandles(String startDate,String endDate){
+    public static List<Candle> getKiteProcessedCandles(String startDate,String endDate,String fileLocation){
     	
-    	Iterator<Candle> itr = getKiteProcessedCandles().iterator();
+    	Iterator<Candle> itr = getKiteProcessedCandles(fileLocation).iterator();
     	
+   	
     	List<Candle> subSet = new ArrayList<Candle>();
     	
     	Candle candle = null;
